@@ -3,7 +3,7 @@
 
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LogisticRegressionCV
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 import time
@@ -85,10 +85,10 @@ def make_prediction(trainX, trainY, predictX):
 	trainX = encoded[:trainLength]
 	predictX = encoded[trainLength:]
 
-	trainY = trainY		
+	trainY = trainY
 
 	print("fitting ...")
-	classifier = LogisticRegressionCV()
+	classifier = RandomForestClassifier(max_depth = 8, n_estimators = 300, max_features = 500)
 	classifier.fit(trainX, trainY)
 
 	print("predicting ...")
@@ -99,52 +99,52 @@ def make_submission(y_predict, file_name='submission',
                     date=True):
 	
 	print(y_predict)
-    """
-    Write a submission file for the Kaggle platform
+	"""
+	Write a submission file for the Kaggle platform
 
-    Parameters
-    ----------
-    y_predict: array [n_predictions]
-        The predictions to write in the file. `y_predict[i]` refer to the
-        user `user_ids[i]` and movie `movie_ids[i]`
-    user_movie_ids: array [n_predictions, 2]
-        if `u, m = user_movie_ids[i]` then `y_predict[i]` is the prediction
-        for user `u` and movie `m`
-    file_name: str or None (default: 'submission')
-        The path to the submission file to create (or override). If none is
-        provided, a default one will be used. Also note that the file extension
-        (.txt) will be appended to the file.
-    date: boolean (default: True)
-        Whether to append the date in the file name
+	Parameters
+	----------
+	y_predict: array [n_predictions]
+	    The predictions to write in the file. `y_predict[i]` refer to the
+	    user `user_ids[i]` and movie `movie_ids[i]`
+	user_movie_ids: array [n_predictions, 2]
+	    if `u, m = user_movie_ids[i]` then `y_predict[i]` is the prediction
+	    for user `u` and movie `m`
+	file_name: str or None (default: 'submission')
+	    The path to the submission file to create (or override). If none is
+	    provided, a default one will be used. Also note that the file extension
+	    (.txt) will be appended to the file.
+	date: boolean (default: True)
+	    Whether to append the date in the file name
 
-    Return
-    ------
-    file_name: path
-        The final path to the submission file
-    """
+	Return
+	------
+	file_name: path
+	    The final path to the submission file
+	"""
 
-    # Naming the file
+	# Naming the file
 
-    """
-    user_movie_ids = load_from_csv("data/data_test.csv")
+	"""
+	user_movie_ids = load_from_csv("data/data_test.csv")
 
-    if date:
-        file_name = '{}_{}'.format(file_name, time.strftime('%d-%m-%Y_%Hh%M'))
+	if date:
+	    file_name = '{}_{}'.format(file_name, time.strftime('%d-%m-%Y_%Hh%M'))
 
-    file_name = '{}.txt'.format(file_name)
+	file_name = '{}.txt'.format(file_name)
 
-    # Writing into the file
-    with open(file_name, 'w') as handle:
-        handle.write('"USER_ID_MOVIE_ID","PREDICTED_RATING"\n')
-        for (user_id, movie_id), prediction in zip(user_movie_ids,
-                                                 y_predict):
+	# Writing into the file
+	with open(file_name, 'w') as handle:
+	    handle.write('"USER_ID_MOVIE_ID","PREDICTED_RATING"\n')
+	    for (user_id, movie_id), prediction in zip(user_movie_ids,
+	                                             y_predict):
 
-            if np.isnan(prediction):
-                raise ValueError('The prediction cannot be NaN')
-            line = '{:d}_{:d},{}\n'.format(user_id, movie_id, prediction)
-            handle.write(line)
-    return file_name
-    """
+	        if np.isnan(prediction):
+	            raise ValueError('The prediction cannot be NaN')
+	        line = '{:d}_{:d},{}\n'.format(user_id, movie_id, prediction)
+	        handle.write(line)
+	return file_name
+	"""
 
 def predict_matrix():
 	print("building train set...")
@@ -159,10 +159,12 @@ def predict_matrix():
 	make_submission(predictY)
 
 def compute_accuracy():
+	print("building dataset...")
 	x, y = make_train_set()
 	trainX, testX, trainY, testY = train_test_split(x, y)
 	predictY = make_prediction(trainX, trainY, testX)
-	return accuracy_score(testY, predictY)
+	trainPredictY = make_prediction(trainX, trainY, trainX)
+	return accuracy_score(testY, predictY), accuracy_score(trainY, trainPredictY)
 
 if __name__ == "__main__":
-	predict_matrix()
+	print(compute_accuracy())
