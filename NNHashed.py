@@ -3,11 +3,13 @@
 
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LogisticRegression
-from sklearn.linear_model import LogisticRegressionCV
+from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import time
+
+NB_USER_FEATURES = 100
+NB_MOVIE_FEATURES = 100
 
 def load_from_csv(path, delimiter=','):
     """
@@ -48,7 +50,7 @@ def clean(data):
 
 	return data
 
-def make_dataset(userMoviePairPath, includeY, nbUserFeatures, nbMovieFeatures):
+def make_dataset(userMoviePairPath, includeY):
 	userMoviePair = load_from_csv(userMoviePairPath)
 	userFeatures = clean(load_from_csv("data/data_user.csv"))
 	movieFeatures = clean(load_from_csv("data/data_movie.csv"))	
@@ -62,13 +64,13 @@ def make_dataset(userMoviePairPath, includeY, nbUserFeatures, nbMovieFeatures):
 	dataset = clean(dataset)
 	dataset = pd.merge(dataset, userFeatures, on = "user_id")
 	dataset = pd.merge(dataset, movieFeatures, on = "movie_id")
-	dataset["user_id"] = dataset["user_id"].map(lambda x : x % nbUserFeatures)
-	dataset["movie_id"] = dataset["movie_id"].map(lambda x : x % nbMovieFeatures)
+	dataset["user_id"] = dataset["user_id"].map(lambda x : x % NB_USER_FEATURES)
+	dataset["movie_id"] = dataset["movie_id"].map(lambda x : x % NB_MOVIE_FEATURES)
 	
 	return dataset
 
-def make_train_set(nbUserFeatures = 200, nbMovieFeatures = 200):
-	dataset = make_dataset("data/data_train.csv", True, nbUserFeatures, nbMovieFeatures)
+def make_train_set():
+	dataset = make_dataset("data/data_train.csv", True)
 
 	y = dataset["rating"].to_frame()
 	x = dataset.drop("rating", axis = 1)
@@ -91,7 +93,7 @@ def make_prediction(trainX, trainY, predictX, complexity = 1.0):
 	trainY = trainY
 
 	print("fitting ...")
-	classifier = LogisticRegression(max_iter = 1000, tol = 0.0001, multi_class = "auto", n_jobs = -1, C = complexity, solver = "lbfgs")
+	classifier = MLPClassifier(hidden_layer_sizes = (100,), max_iter = 1000, tol = 0.0001)
 	classifier.fit(trainX, trainY)
 
 	print("predicting ...")
@@ -163,18 +165,14 @@ def predict_matrix():
 
 def compute_accuracy():
 	print("building dataset...")
-	NB_USER_FEATURES_RANGE = [100, 200, 300]
-	NB_MOVIE_FEATURES_RANGE = [100, 200, 300]
-	for nbUserFeatures in NB_USER_FEATURES_RANGE:
-		for nbMovieFeatures in NB_MOVIE_FEATURES_RANGE:
-			x, y = make_train_set(nbUserFeatures, nbMovieFeatures)
-			trainX, testX, trainY, testY = train_test_split(x, y)
+	x, y = make_train_set()
+	trainX, testX, trainY, testY = train_test_split(x, y)
 
-			#C_PARAM_RANGE = [0.001, 0.01, 0.1, 1, 10, 100]
-			C_PARAM_RANGE = [0.1]
-			for C in C_PARAM_RANGE:	
-				predictY = make_prediction(trainX, trainY, testX, complexity = C)
-				print("mean squared error for c = {}, nb user features = {} and nb movie features = {} is {}".format(C, nbUserFeatures, nbMovieFeatures, mean_squared_error(testY, predictY)))
+	#C_PARAM_RANGE = [0.001, 0.01, 0.1, 1, 10, 100]
+	C_PARAM_RANGE = [1]
+	for C in C_PARAM_RANGE:	
+		predictY = make_prediction(trainX, trainY, testX, complexity = C)
+		print("accuracy for c = {} is {}".format(C, mean_squared_error(testY, predictY)))
 
 if __name__ == "__main__":
 	compute_accuracy()
