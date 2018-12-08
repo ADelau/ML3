@@ -3,9 +3,10 @@
 
 import pandas as pd
 import numpy as np
-from sklearn.neural_network import MLPClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import RandomizedSearchCV
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import accuracy_score
 import time
 
 def load_from_csv(path, delimiter=','):
@@ -25,20 +26,6 @@ def load_from_csv(path, delimiter=','):
         The NumPy array of the data contained in the file
     """
     return pd.read_csv(path, delimiter=delimiter, encoding = "latin_1")
-
-def encode(data):
-	data = data.astype("category")
-	"""
-	le = LabelEncoder()
-	print(data.index)
-	for i in range(len(data.columns)):
-		print(data.values[:,i])
-		print(type(data.values[0,i]))
-		data.values[:,i] = le.fit_transform(data.values[:,i])
-	"""
-	data = pd.get_dummies(data, sparse = True)
-
-	return data
 
 def clean(data):
 	nanProportionToDrop = 1/len(data.columns)
@@ -75,26 +62,51 @@ def make_train_set():
 def make_predict_set():
 	return make_dataset("data/data_test.csv", False)
 
-def make_prediction(trainX, trainY, predictX, complexity = 1.0):
-	print("encoding ...")
-	trainLength = len(trainX)
+def make_prediction(trainX, trainY, predictX):
+    trainX = trainX
+    trainY = trainY
+    predictX = predictX
+
+    trainX["gender"] = trainX["gender"].astype("category")
+    trainX["occupation"] = trainX["occupation"].astype("category")
+    trainX["zip_code"] = trainX["zip_code"].astype("category")
+    trainX["movie_title"] = trainX["movie_title"].astype("category")
+    trainX["release_date"] = trainX["release_date"].astype("category")
+    trainX["IMDb_URL"] = trainX["IMDb_URL"].astype("category")
+
+    """
+    trainX = trainX.drop("gender", axis = 1)
+    trainX = trainX.drop("occupation", axis = 1)
+    trainX = trainX.drop("zip_code", axis = 1)
+    trainX = trainX.drop("movie_title", axis = 1)
+    trainX = trainX.drop("release_date", axis = 1)
+    trainX = trainX.drop("IMDb_URL", axis = 1)
+    """
+
+    trainX.info()
+    trainY.info()
+    
+    print("fitting ...")
+    max_depth= [8, 10, 20, 30, 40, 50]
+    n_estimators= [10, 50, 100, 150, 300]
+    max_features = [2, 5 ,10]
+    param_grid = {'n_estimators': n_estimators,
+               'max_features': max_features,
+               'max_depth': max_depth}
+    classifier = RandomForestClassifier()
+    classifier_search = RandomizedSearchCV(estimator=classifier, param_distributions=param_grid, n_iter=50, n_jobs=-1, cv=3, random_state=11)
+    classifier_search.fit(trainX, trainY)
+    
+    print(classifier_search.best_params_)
+    
+    print("predicting ...")
+    predictY = classifier.predict(predictX)
 	
-	toEncode = pd.concat(objs = [trainX, predictX], axis = 0, sort = False, ignore_index = True)
-	encoded = encode(toEncode)
-	
-	trainX = encoded[:trainLength]
-	predictX = encoded[trainLength:]
-
-	trainY = trainY
-
-	print("fitting ...")
-	classifier = MLPClassifier(hidden_layer_sizes = (100,), max_iter = 1000, tol = 0.0001)
-	classifier.fit(trainX, trainY)
-
-	print("predicting ...")
-	predictY = classifier.predict(predictX)
-	return predictY
-
+    feature_importances = pd.DataFrame(classifier.feature_importances_, index = trainX.columns, columns=["Importance"])
+    print(feature_importances)
+    
+    return predictY
+    
 def make_submission(y_predict, file_name='submission',
                     date=True):
 	
@@ -162,12 +174,8 @@ def compute_accuracy():
 	print("building dataset...")
 	x, y = make_train_set()
 	trainX, testX, trainY, testY = train_test_split(x, y)
-
-	#C_PARAM_RANGE = [0.001, 0.01, 0.1, 1, 10, 100]
-	C_PARAM_RANGE = [0.01]
-	for C in C_PARAM_RANGE:	
-		predictY = make_prediction(trainX, trainY, testX, complexity = C)
-		print("accuracy for c = {} is {}".format(C, mean_squared_error(testY, predictY)))
+	predictY = make_prediction(trainX, trainY, testX)
+	return accuracy_score(testY, predictY)
 
 if __name__ == "__main__":
-	compute_accuracy()
+	print(compute_accuracy())

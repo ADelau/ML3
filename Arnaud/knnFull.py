@@ -3,14 +3,13 @@
 
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LogisticRegression
-from sklearn.linear_model import LogisticRegressionCV
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import time
+import math
+from sklearn.utils import shuffle
 
-NB_USER_FEATURES = 200
-NB_MOVIE_FEATURES = 200
 
 def load_from_csv(path, delimiter=','):
     """
@@ -31,7 +30,6 @@ def load_from_csv(path, delimiter=','):
     return pd.read_csv(path, delimiter=delimiter, encoding = "latin_1")
 
 def encode(data):
-	data = data.astype("category")
 	"""
 	le = LabelEncoder()
 	print(data.index)
@@ -51,33 +49,61 @@ def clean(data):
 
 	return data
 
-def make_dataset(userMoviePairPath, includeY):
-	userMoviePair = load_from_csv(userMoviePairPath)
+def myToordinal(date):
+	return date.toordinal()
+
+def make_dataset(toSplit = False, splitRatio = 0.2):
+	userMovieTrainPair = load_from_csv("data/data_train.csv")
 	userFeatures = load_from_csv("data/data_user.csv")
 	movieFeatures = load_from_csv("data/data_movie.csv")
 
+	userMovieTrainPair = userMovieTrainPair.astype("category")
+	userFeatures = userFeatures.astype("category")
+	movieFeatures = movieFeatures.astype("category")
+
 	userFeatures = userFeatures.drop("zip_code", axis = 1)
 	userFeatures["age"] = userFeatures["age"].astype("int64")
-	userFeatures = clean(userFeatures)
 	
 	movieFeatures = movieFeatures.drop("movie_title", axis = 1)
 	movieFeatures = movieFeatures.drop("IMDb_URL", axis = 1)
-	movieFeatures["release_date"] = movieFeatures["release_date"].astype("datetime64")
+	movieFeatures = movieFeatures.drop("video_release_date", axis = 1)
+
 	movieFeatures = clean(movieFeatures)
+	movieFeatures["release_date"] = movieFeatures["release_date"].astype("datetime64")
+	movieFeatures["release_date"] = movieFeatures["release_date"].map(myToordinal, na_action = "ignore")
 
-	dataset = userMoviePair
-
-	if(includeY):
-		y = load_from_csv("data/output_train.csv")
-		dataset = pd.concat([dataset, y], axis = 1, sort = False)
-
-	dataset = clean(dataset)
-	dataset = pd.merge(dataset, userFeatures, on = "user_id")
-	dataset = pd.merge(dataset, movieFeatures, on = "movie_id")
-	#dataset["user_id"] = dataset["user_id"].map(lambda x : x % NB_USER_FEATURES)
-	#dataset["movie_id"] = dataset["movie_id"].map(lambda x : x % NB_MOVIE_FEATURES)
+	trainDataset = userMovieTrainPair
 	
-	return dataset
+	y = load_from_csv("data/output_train.csv")
+	trainDataset = pd.concat([trainDataset, y], axis = 1, sort = False)
+	trainDataset = pd.merge(trainDataset, userFeatures, on = "user_id")
+	trainDataset = pd.merge(trainDataset, movieFeatures, on = "movie_id")
+
+	if toSplit:
+		trainLength = math.floor(splitRatio * len(trainDataset))
+		trainDataset = shuffle(trainDataset)
+		testDataset = trainDataset[trainLength:]
+		trainDataset = trainDataset[:trainLength]
+
+	else:
+		testDataset = load_from_csv("data/data_test.csv")
+		testDataset = testDataset.astype("category")
+		testDataset = pd.merge(testDataset, userFeatures, on = "user_id")
+		testDataset = pd.merge(testDataset, movieFeatures, on = "movie_id")
+
+	trainDataset = clean(trainDataset)
+	testDataset.fillna(method = "ffill", inplace = True)
+
+	trainY = trainDataset["rating"].to_frame()
+	trainX = trainDataset.drop("rating", axis = 1)
+	
+	if toSplit:
+		testY = testDataset["rating"].to_frame()
+		testX = testDataset.drop("rating", axis = 1)
+
+		return trainX, trainY, testX, testY
+
+	return trainX, trainY, testDataset
 
 def make_train_set():
 	dataset = make_dataset("data/data_train.csv", True)
@@ -102,8 +128,12 @@ def make_prediction(trainX, trainY, predictX, complexity = 1.0):
 
 	trainY = trainY
 
+	trainX.info()
+	trainY.info()
+	predictX.info()
+
 	print("fitting ...")
-	classifier = LogisticRegression(max_iter = 1000, tol = 0.0001, multi_class = "multinomial", n_jobs = -1, C = complexity, solver = "lbfgs") #changer et mettre auto
+	classifier = KNeighborsClassifier(n_neighbors = 5) #5 car y a plus ou moins 5 ratings par user
 	classifier.fit(trainX, trainY)
 
 	print("predicting ...")
@@ -161,12 +191,14 @@ def make_submission(y_predict, file_name='submission',
 	return file_name
 	"""
 
-def predict_matrix():
-	print("building train set...")
-	trainX, trainY = make_train_set();
+def write_output(predicted):
+	fp = open("output.txt", "w")
+	for rating in predicted:
+		fp.write("{} \n".format())
 
-	print("building test set...")
-	predictX = make_predict_set();
+def predict_matrix():
+	print("building dataset...")
+	trainX, trainY, predictX = make_dataset();
 
 	predictY = make_prediction(trainX, trainY, predictX)
 	
@@ -175,14 +207,11 @@ def predict_matrix():
 
 def compute_accuracy():
 	print("building dataset...")
-	x, y = make_train_set()
-	trainX, testX, trainY, testY = train_test_split(x, y)
+	trainX, trainY, testX, testY = make_dataset(True, 0.2)
 
-	#C_PARAM_RANGE = [0.001, 0.01, 0.1, 1, 10, 100]
-	C_PARAM_RANGE = [0.1]
-	for C in C_PARAM_RANGE:	
-		predictY = make_prediction(trainX, trainY, testX, complexity = C)
-		print("mean_squared_error for c = {} is {}".format(C, mean_squared_error(testY, predictY)))
+	predictY = make_prediction(trainX, trainY, testX)
+	print("mean_squared_error = {}".format(mean_squared_error(testY, predictY)))
+	write_output(predictY)
 
 if __name__ == "__main__":
 	compute_accuracy()
