@@ -183,7 +183,7 @@ if __name__ == '__main__':
     # Build the model
     y_ls = training_labels
     start = time.time()
-    model = DecisionTreeRegressor()
+    model = DecisionTreeRegressor(max_depth=1)
 
     with measure_time('Training'):
         print('Training...')

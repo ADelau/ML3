@@ -1,0 +1,55 @@
+N Features = 1, cols = ['release_date'] 
+N Features = 2, cols = ['release_date' 'Drama'] 
+N Features = 3, cols = ['release_date' 'Drama' 'War'] 
+N Features = 4, cols = ['release_date' 'Comedy' 'Drama' 'War'] 
+N Features = 5, cols = ['release_date' 'Comedy' 'Drama' 'Horror' 'War'] 
+N Features = 6, cols = ['age' 'release_date' 'Comedy' 'Drama' 'Horror' 'War'] 
+N Features = 7, cols = ['age' 'release_date' 'Comedy' 'Drama' 'Film-Noir' 'Horror' 'War'] 
+N Features = 8, cols = ['age' 'release_date' 'Comedy' 'Drama' 'Film-Noir' 'Horror' 'Romance'
+ 'War'] 
+N Features = 9, cols = ['age' 'release_date' 'Children' 'Comedy' 'Drama' 'Film-Noir' 'Horror'
+ 'Romance' 'War'] 
+N Features = 10, cols = ['age' 'release_date' 'Children' 'Comedy' 'Drama' 'Fantasy' 'Film-Noir'
+ 'Horror' 'Romance' 'War'] 
+N Features = 11, cols = ['age' 'release_date' 'Action' 'Children' 'Comedy' 'Drama' 'Fantasy'
+ 'Film-Noir' 'Horror' 'Romance' 'War'] 
+N Features = 12, cols = ['age' 'release_date' 'Action' 'Children' 'Comedy' 'Crime' 'Drama'
+ 'Fantasy' 'Film-Noir' 'Horror' 'Romance' 'War'] 
+N Features = 13, cols = ['age' 'release_date' 'Action' 'Children' 'Comedy' 'Crime' 'Drama'
+ 'Fantasy' 'Film-Noir' 'Horror' 'Mystery' 'Romance' 'War'] 
+N Features = 14, cols = ['age' 'release_date' 'Action' 'Children' 'Comedy' 'Crime' 'Drama'
+ 'Fantasy' 'Film-Noir' 'Horror' 'Mystery' 'Romance' 'Sci-Fi' 'War'] 
+N Features = 15, cols = ['movie_id' 'age' 'release_date' 'Action' 'Children' 'Comedy' 'Crime'
+ 'Drama' 'Fantasy' 'Film-Noir' 'Horror' 'Mystery' 'Romance' 'War'
+ 'Western'] 
+N Features = 16, cols = ['age' 'release_date' 'Action' 'Children' 'Comedy' 'Crime' 'Drama'
+ 'Fantasy' 'Film-Noir' 'Horror' 'Mystery' 'Romance' 'Sci-Fi' 'Thriller'
+ 'War' 'Western'] 
+N Features = 17, cols = ['movie_id' 'age' 'release_date' 'Action' 'Adventure' 'Children' 'Comedy'
+ 'Crime' 'Drama' 'Fantasy' 'Film-Noir' 'Horror' 'Mystery' 'Romance'
+ 'Sci-Fi' 'Thriller' 'War'] 
+N Features = 18, cols = ['movie_id' 'age' 'release_date' 'Action' 'Adventure' 'Children' 'Comedy'
+ 'Crime' 'Drama' 'Fantasy' 'Film-Noir' 'Horror' 'Mystery' 'Romance'
+ 'Sci-Fi' 'Thriller' 'War' 'Western'] 
+N Features = 19, cols = ['movie_id' 'age' 'release_date' 'Action' 'Adventure' 'Animation'
+ 'Children' 'Comedy' 'Crime' 'Documentary' 'Drama' 'Fantasy' 'Film-Noir'
+ 'Horror' 'Mystery' 'Romance' 'Sci-Fi' 'Thriller' 'War'] 
+N Features = 20, cols = ['movie_id' 'age' 'release_date' 'Action' 'Adventure' 'Animation'
+ 'Children' 'Comedy' 'Crime' 'Documentary' 'Drama' 'Fantasy' 'Film-Noir'
+ 'Horror' 'Mystery' 'Romance' 'Sci-Fi' 'Thriller' 'War' 'Western'] 
+N Features = 21, cols = ['movie_id' 'age' 'release_date' 'Action' 'Adventure' 'Animation'
+ 'Children' 'Comedy' 'Crime' 'Documentary' 'Drama' 'Fantasy' 'Film-Noir'
+ 'Horror' 'Musical' 'Mystery' 'Romance' 'Sci-Fi' 'Thriller' 'War'
+ 'Western'] 
+N Features = 22, cols = ['movie_id' 'age' 'gender' 'release_date' 'Action' 'Adventure' 'Animation'
+ 'Children' 'Comedy' 'Crime' 'Documentary' 'Drama' 'Fantasy' 'Film-Noir'
+ 'Horror' 'Musical' 'Mystery' 'Romance' 'Sci-Fi' 'Thriller' 'War'
+ 'Western'] 
+N Features = 23, cols = ['user_id' 'movie_id' 'age' 'gender' 'release_date' 'Action' 'Adventure'
+ 'Animation' 'Children' 'Comedy' 'Crime' 'Documentary' 'Drama' 'Fantasy'
+ 'Film-Noir' 'Horror' 'Musical' 'Mystery' 'Romance' 'Sci-Fi' 'Thriller'
+ 'War' 'Western'] 
+N Features = 24, cols = ['user_id' 'movie_id' 'age' 'gender' 'release_date' 'unknown' 'Action'
+ 'Adventure' 'Animation' 'Children' 'Comedy' 'Crime' 'Documentary' 'Drama'
+ 'Fantasy' 'Film-Noir' 'Horror' 'Musical' 'Mystery' 'Romance' 'Sci-Fi'
+ 'Thriller' 'War' 'Western'] 
