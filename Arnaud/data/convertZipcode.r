@@ -17,27 +17,8 @@ for(i in 1:length(zip_codes)){
   }
   else{
     index <- which.min(abs(as.numeric(as.character(zipcode[, colnames(zipcode) == "zip"])) - as.numeric(as.character(zip_codes[i]))))
-    tmp <- zipcode[index, colnames(zipcode) == "longitude"]
-    if(is.na(tmp)){
-      longitude[i] <- NA
-    }
-    else{
-      while(abs(tmp) > 120){
-        tmp <- tmp/10
-      }
-      longitude[i] <- tmp
-    }
-    
-    tmp <- zipcode[index, colnames(zipcode) == "latitude"]
-    if(is.na(tmp)){
-      longitude[i] <- NA
-    }
-    else{
-      while(abs(tmp) > 120){
-        tmp <- tmp/10
-      }
-      latitude[i] <- tmp
-    }
+    longitude[i] <- zipcode[index, colnames(zipcode) == "longitude"]
+    latitude[i] <- zipcode[index, colnames(zipcode) == "latitude"]
   }
 }
 
