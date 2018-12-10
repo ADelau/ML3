@@ -10,9 +10,35 @@ longitude <- vector("numeric", length(zip_codes))
 latitude <- vector("numeric", length(zip_codes))
 
 for(i in 1:length(zip_codes)){
-  index <- which.min(abs(as.numeric(as.character(zipcode[, colnames(zipcode) == "zip"])) - as.numeric(as.character(zip_codes[i]))))
-  longitude[i] <- zipcode[index, colnames(zipcode) == "longitude"]
-  latitude[i] <- zipcode[index, colnames(zipcode) == "latitude"]
+  #weird zip code
+  if(is.na(as.numeric(as.character(zip_codes[i])))){
+    longitude[i] <- NA
+    latitude[i] <- NA
+  }
+  else{
+    index <- which.min(abs(as.numeric(as.character(zipcode[, colnames(zipcode) == "zip"])) - as.numeric(as.character(zip_codes[i]))))
+    tmp <- zipcode[index, colnames(zipcode) == "longitude"]
+    if(is.na(tmp)){
+      longitude[i] <- NA
+    }
+    else{
+      while(abs(tmp) > 120){
+        tmp <- tmp/10
+      }
+      longitude[i] <- tmp
+    }
+    
+    tmp <- zipcode[index, colnames(zipcode) == "latitude"]
+    if(is.na(tmp)){
+      longitude[i] <- NA
+    }
+    else{
+      while(abs(tmp) > 120){
+        tmp <- tmp/10
+      }
+      latitude[i] <- tmp
+    }
+  }
 }
 
 userData <- cbind(userData, longitude, latitude)
