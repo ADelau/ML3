@@ -1,5 +1,4 @@
 from numpy import nan
-from textblob import TextBlob
 from textblob.en.sentiments import PatternAnalyzer
 
 def stringAnalyzer(string):

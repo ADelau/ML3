@@ -111,8 +111,8 @@ def make_train_set():
 
     polarity, subjectivity = utils.stringAnalyzer(x["movie_title"])
     x = x.drop("movie_title", axis = 1)
-    pd.concat(objs = [x, pd.Series(data = polarity, name = "polarity")], axis = 1, sort = False)
-    pd.concat(objs = [x, pd.Series(data = subjectivity, name = "subjectivy")], axis = 1, sort = False)
+    x = pd.concat(objs = [x, pd.Series(data = polarity, name = "polarity")], axis = 1, sort = False)
+    x = pd.concat(objs = [x, pd.Series(data = subjectivity, name = "subjectivy")], axis = 1, sort = False)
 
     return x, y
 
