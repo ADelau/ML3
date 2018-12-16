@@ -1,0 +1,3 @@
+No parameters score : 1.2337110664625768 
+Grid score : 1.0276349988647184 
+{"bootstrap": true, "max_depth": null, "max_features": "auto", "min_samples_split": 50, "n_estimators": 600}
