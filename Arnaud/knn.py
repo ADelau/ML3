@@ -289,7 +289,7 @@ def submit():
     print('Submission file "{}" successfully written'.format(fname))
 
 def compute_accuracy(neighbors = 200):
-    trainX, trainY, testX, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict = make_dataset(False, 0.2)
+    trainX, trainY, testX, testY, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict = make_dataset(True, 0.2)
     
     predictY = make_prediction(trainX, trainY, testX, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict, neighbors)
     error = mean_squared_error(testY, predictY)
@@ -299,16 +299,18 @@ def best_parameters():
     NB_TEST = 3
     parameters = (50, 100, 200, 500)
 
-    for parameter in parameters
+    for parameter in parameters:
         score = 0
         for _ in NB_TEST:
             score += compute_accuracy(parameter)
+
+        score /= NB_TEST
 
         print("score for {} neighbors = {}".format(parameter, score))
 
 
 if __name__ == '__main__':
-    compute_accuracy()
+    best_parameters()
 
    
 

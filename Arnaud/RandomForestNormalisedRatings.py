@@ -273,7 +273,7 @@ def make_prediction(trainX, trainY, testX, userMeanRating, movieMeanRating, user
 
 def submit():
     print("building dataset...")
-    trainX, trainY, testX, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict = make_dataset(False, 0.2)
+    trainX, trainY, testX, testY, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict = make_dataset(True, 0.2)
     
     predictY = make_prediction(trainX, trainY, testX, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict)
    
@@ -295,7 +295,7 @@ def compute_accuracy():
     return error
 
 if __name__ == '__main__':
-    compute_accuracy()
+    submit()
 
    
 
