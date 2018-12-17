@@ -212,7 +212,7 @@ if __name__ == '__main__':
         estim = MLPRegressor()
         # Random search of parameters, using 3 fold cross validation, 
         # search across 100 different combinations, and use all available cores
-        estim_random = RandomizedSearchCV(estimator = estim, param_distributions = random_grid, n_iter =3, cv = 3, verbose=2, random_state=42, n_jobs = -1)
+        estim_random = RandomizedSearchCV(estimator = estim, param_distributions = random_grid, n_iter =50, cv = 3, verbose=2, random_state=42, n_jobs = -1)
         # Fit the random search model
         estim_random.fit(trainX, trainY)
         score = evaluate(estim_random, testX, testY)
