@@ -372,7 +372,7 @@ def best_parameters():
 
     for parameter in parameters:
         score = 0
-        for _ in NB_TEST:
+        for _ in range(NB_TEST):
             score += compute_accuracy(parameter)
 
         score /= NB_TEST
