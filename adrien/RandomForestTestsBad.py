@@ -5,7 +5,7 @@ import os
 import time
 import datetime
 from contextlib import contextmanager
-import warnings
+
 
 import pandas as pd
 import numpy as np
@@ -147,8 +147,8 @@ def make_dataset(userMoviePairPath, includeY):
         y = load_from_csv("data/output_train.csv")
         dataset = pd.concat([dataset, y], axis = 1, sort = False)
 
-    dataset = pd.merge(dataset, userFeatures, on = "user_id")
-    dataset = pd.merge(dataset, movieFeatures, on = "movie_id")
+    # dataset = pd.merge(dataset, userFeatures, on = "user_id")
+    # dataset = pd.merge(dataset, movieFeatures, on = "movie_id")
 
     return dataset
 
@@ -158,18 +158,34 @@ def make_train_set():
     y = dataset["rating"].to_frame()
     x = dataset.drop("rating", axis = 1)
 
-    x = x.drop("IMDb_URL", axis = 1)
-    x = x.drop("movie_title", axis = 1)
-    x = x.drop("zip_code", axis = 1)
+    # x = x.drop("IMDb_URL", axis = 1)
+    # x = x.drop("movie_title", axis = 1)
+    # x = x.drop("zip_code", axis = 1)
 
-    x["release_date"] = [utils.dateConverter(date) for date in x["release_date"]]
-    x["gender"] = [utils.genderConverter(item) for item in x["gender"]]
+    # x["release_date"] = [utils.dateConverter(date) for date in x["release_date"]]
+    # x["gender"] = [utils.genderConverter(item) for item in x["gender"]]
 
-    one_hot = pd.get_dummies(x['occupation'])
-    x = x.drop("occupation", axis = 1)
-    x = x.join(one_hot)
+    # one_hot = pd.get_dummies(x['occupation'])
+    # x = x.drop("occupation", axis = 1)
+    # x = x.join(one_hot)
 
     return clean(x), y
+
+def make_test_set():
+    dataset = make_dataset("data/data_test.csv", False)
+
+    # dataset["release_date"] = [utils.dateConverter(date) for date in dataset["release_date"]]
+    # dataset["gender"] = [utils.genderConverter(item) for item in dataset["gender"]]
+
+    # dataset = dataset.drop("IMDb_URL", axis = 1)
+    # dataset = dataset.drop("movie_title", axis = 1)
+    # dataset = dataset.drop("zip_code", axis = 1)
+
+    # one_hot = pd.get_dummies(dataset['occupation'])
+    # dataset = dataset.drop("occupation", axis = 1)
+    # dataset = dataset.join(one_hot)
+
+    return clean(dataset)
 
 
 if __name__ == '__main__':
@@ -184,7 +200,6 @@ if __name__ == '__main__':
     # X_ls2 = X_ls.drop("movie_id", axis = 1)
     # X_ls2 = X_ls2.drop("user_id", axis = 1)
 
-    y_ls = np.ravel(y_ls)
     trainX, testX, trainY, testY = train_test_split(X_ls, y_ls)
 
     # Build the model
@@ -194,20 +209,12 @@ if __name__ == '__main__':
         print('Training...')
 
         trainY = np.ravel(trainY)
-        # model = RandomForestRegressor(n_estimators= 200, min_samples_split= 20, max_features= "sqrt", max_depth= 85, bootstrap= False)
-        model = RandomForestRegressor()
-        # model.fit(trainX, trainY)
+        model = RandomForestRegressor(n_estimators= 600, min_samples_split= 20, max_features= "sqrt", max_depth= 85, bootstrap= True)
+        model.fit(trainX, trainY)
 
     # ------------------------------ Prediction ------------------------------ #
     # Predict
-    y_ls = np.ravel(y_ls)
-
-    # for item in testY:
-    #     item = int(round(item))
-    # score = utils.CVMeanRating(model, X_ls2, y_ls, cv=10)
-    # print(score)
-
-    score = -1 * np.mean(cross_val_score(model, X_ls, y_ls, n_jobs=-1, cv=3, scoring='neg_mean_squared_error'))
-    print("OfficialScore : ", score)
-    score = utils.CVMeanRating(model, X_ls, y_ls, 3)
-    print("MyScore : ", score)
+    testY = np.ravel(testY)
+    score = -1 * np.mean(cross_val_score(model, testX, testY, n_jobs=-1, cv=10, scoring='neg_mean_squared_error'))
+    print(score)
+    

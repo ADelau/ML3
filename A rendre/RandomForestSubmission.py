@@ -118,22 +118,34 @@ def encode(data):
 	return data
 
 def clean(data):
-	# Replace NaN with mean of the feature
-    n = data.isna().any()
-    col = data.columns[n]
-    
-    for item in col:
-        mean = data[item].mean()
+    """
+    Fill NaN in data with 0
 
-        if pd.isnull(mean):
-            data.drop(item, axis=1, inplace=True)
-        else:
-            data[item] = data[item].fillna(mean)
+    Parameters
+    ----------
+    data: a data Dataframe
+
+    Return
+    ------
+    the DataFrame with its NaN filled with 0
+    """
         
-    # data = data.fillna(0)
-    return data
+    return data.fillna(0)
 
 def make_dataset(userMoviePairPath, includeY):
+    """
+    Create the dataset from csv files
+
+    Parameters
+    ----------
+    userMoviePairPath: the path to the csv file containg pairs of user/movie id's
+    includeY: True to inclue rating Y, false otherwise
+
+    Return
+    ------
+    the dataset in a DataFrame
+    """
+
     userMoviePair = load_from_csv(userMoviePairPath)
 
     userFeatures = load_from_csv("data/data_user.csv")
@@ -152,6 +164,14 @@ def make_dataset(userMoviePairPath, includeY):
     return dataset
 
 def make_train_set():
+    """
+    Create the train set
+
+    Return
+    ------
+    the training dataset in a DataFrame
+    """
+
     dataset = make_dataset("data/data_train.csv", True)
 
     y = dataset["rating"].to_frame()
@@ -171,6 +191,15 @@ def make_train_set():
     return clean(x), y
 
 def make_test_set():
+    """
+    Create the test set
+
+    Return
+    ------
+    the testing dataset in a DataFrame
+    """
+
+
     dataset = make_dataset("data/data_test.csv", False)
 
     dataset["release_date"] = [utils.dateConverter(date) for date in dataset["release_date"]]
@@ -188,6 +217,11 @@ def make_test_set():
 
 
 if __name__ == '__main__':
+    """
+    Script used to create a sumbission with a random forest regressor
+    """
+
+
     prefix = 'data/'
     plotFolder = "graphs/"
 
@@ -206,7 +240,7 @@ if __name__ == '__main__':
         print('Training...')
 
         y_ls = np.ravel(y_ls)
-        model = RandomForestRegressor()
+        model = RandomForestRegressor(n_estimators= 400, min_samples_split= 10, max_features= "auto", max_depth= 30, bootstrap= True)
         model.fit(X_ls2, y_ls)
 
     # ------------------------------ Prediction ------------------------------ #

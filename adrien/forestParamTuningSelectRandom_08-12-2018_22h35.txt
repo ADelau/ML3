@@ -1,0 +1,3 @@
+No parameters score : 1.1257453058403408 
+Random score : 0.9933021259855466 
+{"n_estimators": 600, "min_samples_split": 20, "max_features": "sqrt", "max_depth": 85, "bootstrap": false}

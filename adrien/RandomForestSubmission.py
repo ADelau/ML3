@@ -19,6 +19,7 @@ from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import f_regression, mutual_info_regression
 import utils
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestRegressor
 
 @contextmanager
 def measure_time(label):
@@ -58,6 +59,50 @@ def load_from_csv(path, delimiter=','):
     """
     return pd.read_csv(path, delimiter=delimiter, encoding = "latin_1")
 
+def make_submission(y_predict, user_movie_ids, file_name='submission',
+                date=True):
+    """
+    Write a submission file for the Kaggle platform
+
+    Parameters
+    ----------
+    y_predict: array [n_predictions]
+        The predictions to write in the file. `y_predict[i]` refer to the
+        user `user_ids[i]` and movie `movie_ids[i]`
+    user_movie_ids: array [n_predictions, 2]
+        if `u, m = user_movie_ids[i]` then `y_predict[i]` is the prediction
+        for user `u` and movie `m`
+    file_name: str or None (default: 'submission')
+        The path to the submission file to create (or override). If none is
+        provided, a default one will be used. Also note that the file extension
+        (.txt) will be appended to the file.
+    date: boolean (default: True)
+        Whether to append the date in the file name
+
+    Return
+    ------
+    file_name: path
+        The final path to the submission file
+    """
+
+    # Naming the file
+    if date:
+        file_name = '{}_{}'.format(file_name, time.strftime('%d-%m-%Y_%Hh%M'))
+
+    file_name = '{}.txt'.format(file_name)
+
+    # Writing into the file
+    with open(file_name, 'w') as handle:
+        handle.write('"USER_ID_MOVIE_ID","PREDICTED_RATING"\n')
+        for (user_id, movie_id), prediction in zip(user_movie_ids,
+                                                    y_predict):
+
+            if np.isnan(prediction):
+                raise ValueError('The prediction cannot be NaN')
+            line = '{:d}_{:d},{}\n'.format(user_id, movie_id, prediction)
+            handle.write(line)
+    return file_name
+
 def encode(data):
 	data = data.astype("category")
 	"""
@@ -71,7 +116,6 @@ def encode(data):
 	data = pd.get_dummies(data, sparse = True)
 
 	return data
-
 
 def clean(data):
     """
@@ -103,8 +147,10 @@ def make_dataset(userMoviePairPath, includeY):
     """
 
     userMoviePair = load_from_csv(userMoviePairPath)
-    userFeatures = clean(load_from_csv("data/data_user.csv"))
-    movieFeatures = clean(load_from_csv("data/data_movie.csv"))	
+
+    userFeatures = load_from_csv("data/data_user.csv")
+    movieFeatures = load_from_csv("data/data_movie.csv")
+
 
     dataset = userMoviePair
 
@@ -112,7 +158,6 @@ def make_dataset(userMoviePairPath, includeY):
         y = load_from_csv("data/output_train.csv")
         dataset = pd.concat([dataset, y], axis = 1, sort = False)
 
-    dataset = clean(dataset)
     dataset = pd.merge(dataset, userFeatures, on = "user_id")
     dataset = pd.merge(dataset, movieFeatures, on = "movie_id")
 
@@ -131,20 +176,49 @@ def make_train_set():
 
     y = dataset["rating"].to_frame()
     x = dataset.drop("rating", axis = 1)
+
     x = x.drop("IMDb_URL", axis = 1)
     x = x.drop("movie_title", axis = 1)
     x = x.drop("zip_code", axis = 1)
-    x = x.drop("occupation", axis = 1)
 
     x["release_date"] = [utils.dateConverter(date) for date in x["release_date"]]
     x["gender"] = [utils.genderConverter(item) for item in x["gender"]]
 
-    return x, y
+    one_hot = pd.get_dummies(x['occupation'])
+    x = x.drop("occupation", axis = 1)
+    x = x.join(one_hot)
+
+    return clean(x), y
+
+def make_test_set():
+    """
+    Create the test set
+
+    Return
+    ------
+    the testing dataset in a DataFrame
+    """
+
+
+    dataset = make_dataset("data/data_test.csv", False)
+
+    dataset["release_date"] = [utils.dateConverter(date) for date in dataset["release_date"]]
+    dataset["gender"] = [utils.genderConverter(item) for item in dataset["gender"]]
+
+    dataset = dataset.drop("IMDb_URL", axis = 1)
+    dataset = dataset.drop("movie_title", axis = 1)
+    dataset = dataset.drop("zip_code", axis = 1)
+
+    one_hot = pd.get_dummies(dataset['occupation'])
+    dataset = dataset.drop("occupation", axis = 1)
+    dataset = dataset.join(one_hot)
+
+    return clean(dataset)
 
 
 if __name__ == '__main__':
     """
-    Script used to find optimal depth for Deciton Tree regressor
+    Script used to create a sumbission with a random forest regressor
     """
 
 
@@ -156,41 +230,37 @@ if __name__ == '__main__':
     # Build the learning matrix
     X_ls, y_ls = make_train_set()
 
-    scores = []
-    kCross = 10
-    dpt = range(1, 200, 1)
+    X_ls2 = X_ls.drop("movie_id", axis = 1)
+    X_ls2 = X_ls2.drop("user_id", axis = 1)
 
     # Build the model
     start = time.time()
-    minim = 100
-    minindex = -1
 
     with measure_time('Training'):
         print('Training...')
-        for n in dpt:
-            if n%10 == 0:
-                print(n)
-            trainX, testX, trainY, testY = train_test_split(X_ls, y_ls)
 
-            y = np.ravel(trainY)
+        y_ls = np.ravel(y_ls)
+        model = RandomForestRegressor(n_estimators= 400, min_samples_split= 10, max_features= "auto", max_depth= 30, bootstrap= True)
+        model.fit(X_ls2, y_ls)
 
-            # Get score for this depth
-            model = DecisionTreeRegressor(max_depth = n)
-            s = -1 * np.mean(cross_val_score(model, testX, testY, n_jobs=-1, cv=kCross, scoring='neg_mean_squared_error'))
-            scores.append(s)
+    # ------------------------------ Prediction ------------------------------ #
+    X_ts = make_test_set()
+    X_ts2 = X_ts.drop("movie_id", axis = 1)
+    X_ts2 = X_ts2.drop("user_id", axis = 1)
 
-            if s < minim:
-                minim = s
-                minindex = n
+    # Predict
+    y_pred = model.predict(X_ts2)
 
+    # Making the submission file
+    xSubmit = []
+    for index, item in X_ts.iterrows():
+        user = item['user_id']
+        movie = item['movie_id']
+        xSubmit.append([int(user), int(movie)])
 
-    print("Best for Dpt =  ",minindex , " score = ", minim)
+    fname = make_submission(y_pred, xSubmit, 'SimpleForestFillMean')
+    print('Submission file "{}" successfully written'.format(fname))
 
-    plt.plot(dpt, scores, label="Mean Squared Error")
-    plt.title("Cross Validation Score : DT , min at depth = {}".format(minindex))
-    plt.legend()
-
-    plt.savefig(plotFolder + "DecisionTreeCrossValScore.pdf")
 
 
     

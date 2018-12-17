@@ -73,30 +73,59 @@ def encode(data):
 	return data
 
 def clean(data):
-	nanProportionToDrop = 1/len(data.columns)
-	data = data.dropna(axis = 1, thresh = nanProportionToDrop*len(data.index))
-	data = data.dropna(axis = 0, how = "any")
+    """
+    Fill NaN in data with 0
 
-	return data
+    Parameters
+    ----------
+    data: a data Dataframe
+
+    Return
+    ------
+    the DataFrame with its NaN filled with 0
+    """
+        
+    return data.fillna(0)
 
 def make_dataset(userMoviePairPath, includeY):
-	userMoviePair = load_from_csv(userMoviePairPath)
-	userFeatures = clean(load_from_csv("data/data_user.csv"))
-	movieFeatures = clean(load_from_csv("data/data_movie.csv"))	
+    """
+    Create the dataset from csv files
 
-	dataset = userMoviePair
+    Parameters
+    ----------
+    userMoviePairPath: the path to the csv file containg pairs of user/movie id's
+    includeY: True to inclue rating Y, false otherwise
 
-	if(includeY):
-		y = load_from_csv("data/output_train.csv")
-		dataset = pd.concat([dataset, y], axis = 1, sort = False)
+    Return
+    ------
+    the dataset in a DataFrame
+    """
 
-	dataset = clean(dataset)
-	dataset = pd.merge(dataset, userFeatures, on = "user_id")
-	dataset = pd.merge(dataset, movieFeatures, on = "movie_id")
+    userMoviePair = load_from_csv(userMoviePairPath)
+    userFeatures = clean(load_from_csv("data/data_user.csv"))
+    movieFeatures = clean(load_from_csv("data/data_movie.csv"))	
 
-	return dataset
+    dataset = userMoviePair
+
+    if(includeY):
+        y = load_from_csv("data/output_train.csv")
+        dataset = pd.concat([dataset, y], axis = 1, sort = False)
+
+    dataset = clean(dataset)
+    dataset = pd.merge(dataset, userFeatures, on = "user_id")
+    dataset = pd.merge(dataset, movieFeatures, on = "movie_id")
+
+    return dataset
 
 def make_train_set():
+    """
+    Create the train set
+
+    Return
+    ------
+    the training dataset in a DataFrame
+    """
+
     dataset = make_dataset("data/data_train.csv", True)
 
     y = dataset["rating"].to_frame()
@@ -113,6 +142,10 @@ def make_train_set():
 
 
 if __name__ == '__main__':
+    """
+    Script used to find best features for a Decision tree
+    """
+
     prefix = 'data/'
     plotFolder = "graphs/"
 
@@ -120,13 +153,10 @@ if __name__ == '__main__':
     # ------------------------------- Learning ------------------------------- #
     # Build the learning matrix
     X_ls, y_ls = make_train_set()
-    # print(X_ls.shape)
-    # print(X_ls.columns.values)
 
     scores = []
     kCross = 3
     nFeatures = range(1, 25, 2)
-    # nFeatures = [1, 5, 9, 13, 17, 21, 24]
 
     # Build the model
     start = time.time()
@@ -147,6 +177,7 @@ if __name__ == '__main__':
             # Create new dataframe with only desired column
             testX = testX[trainX.columns[cols]]
 
+            # Get score for these features
             model = DecisionTreeRegressor(max_depth = 10)
             s = -1 * np.mean(cross_val_score(model, testX, testY, n_jobs=-1, cv=kCross, scoring='neg_mean_squared_error'))
             print("number = ", n, "score = ", s)

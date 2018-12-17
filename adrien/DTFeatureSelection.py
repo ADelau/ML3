@@ -12,15 +12,13 @@ import numpy as np
 from scipy import sparse
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import cross_val_score, train_test_split, RandomizedSearchCV
+from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.neighbors import KNeighborsRegressor
 from matplotlib import pyplot as plt
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import f_regression, mutual_info_regression
 import utils
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestRegressor
-import json
 
 @contextmanager
 def measure_time(label):
@@ -86,12 +84,8 @@ def clean(data):
     ------
     the DataFrame with its NaN filled with 0
     """
-
-    nanProportionToDrop = 1/len(data.columns)
-    data = data.dropna(axis = 1, thresh = nanProportionToDrop*len(data.index))
-    data = data.dropna(axis = 0, how = "any")
-
-    return data 
+        
+    return data.fillna(0)
 
 def make_dataset(userMoviePairPath, includeY):
     """
@@ -136,106 +130,68 @@ def make_train_set():
 
     y = dataset["rating"].to_frame()
     x = dataset.drop("rating", axis = 1)
+    x = x.drop("IMDb_URL", axis = 1)
+    x = x.drop("movie_title", axis = 1)
+    x = x.drop("zip_code", axis = 1)
+    x = x.drop("occupation", axis = 1)
 
     x["release_date"] = [utils.dateConverter(date) for date in x["release_date"]]
     x["gender"] = [utils.genderConverter(item) for item in x["gender"]]
 
-    one_hot = pd.get_dummies(x['occupation'])
-    x = x.drop("occupation", axis = 1)
-    x = x.join(one_hot)
-
-    x = x.drop("IMDb_URL", axis = 1)
-    x = x.drop("movie_title", axis = 1)
-    x = x.drop("zip_code", axis = 1)
-
     return x, y
 
 
-def evaluate(model, x, y):
-    """
-    Evaluate a model with the MSE
-
-    Parameters
-    ----------
-    model: a trained ML model with the "predict" function
-    x: the features to predict
-    y: the real results of the predictions
-
-    Return
-    ------
-    the MSE
-    """
-
-    predictions = model.predict(x)
-    mse = (predictions - y)**2
-    
-    return np.mean(mse)
-
 if __name__ == '__main__':
     """
-    Script used to find best hyperparameters of RandomForest with RandomSearch
+    Script used to find best features for a Decision tree
     """
 
     prefix = 'data/'
     plotFolder = "graphs/"
-    fileName = '{}_{}.txt'.format("forestParamTuningSelectRandom", time.strftime('%d-%m-%Y_%Hh%M'))
-    file  = open(fileName, "w")
 
 
     # ------------------------------- Learning ------------------------------- #
     # Build the learning matrix
     X_ls, y_ls = make_train_set()
-    X_ls = X_ls.drop("user_id", axis = 1)    
-    X_ls = X_ls.drop("movie_id", axis = 1)
-    X_ls = X_ls.drop("unknown", axis = 1)
 
-    trainX, testX, trainY, testY = train_test_split(X_ls, y_ls, random_state=42)
-    trainY = np.ravel(trainY)
-    testY = np.ravel(testY)
+    scores = []
+    kCross = 3
+    nFeatures = range(1, 25, 2)
 
-    # Test without parameters tuning
-    with measure_time('Simplest Forest'):
-        rf = RandomForestRegressor()
-        rf.fit(trainX, trainY)
-        simpleScore = evaluate(rf, testX, testY)
-        file.write("No parameters score : {} \n".format(simpleScore))
-        
+    # Build the model
+    start = time.time()
 
-    # Number of trees in random forest
-    n_estimators = [int(x) for x in np.linspace(start = 200, stop = 800, num = 4)]
-    # Number of features to consider at every split
-    max_features = ['auto', 'sqrt']
-    # Maximum number of levels in tree
-    max_depth = [int(x) for x in np.linspace(10, 110, num = 5)]
-    max_depth.append(None)
-    # Minimum number of samples required to split a node
-    min_samples_split = [2, 5, 10, 20, 50]
-    # Method of selecting samples for training each tree
-    bootstrap = [True, False]
-    # Create the random grid
-    random_grid = {'n_estimators': n_estimators,
-                'max_features': max_features,
-                'max_depth': max_depth,
-                'min_samples_split': min_samples_split,
-                'bootstrap': bootstrap}
-    print(random_grid)
+    file  = open(plotFolder + "featuresSelec.txt", "w")
 
-    with measure_time('Random Search'):
+    with measure_time('Training'):
+        print('Training...')
+        for n in nFeatures:
+            trainX, testX, trainY, testY = train_test_split(X_ls, y_ls)
 
-        # Use the random grid to search for best hyperparameters
-        # First create the base model to tune
-        rf = RandomForestRegressor()
-        # Random search of parameters, using 3 fold cross validation, 
-        # search across 100 different combinations, and use all available cores
-        rf_random = RandomizedSearchCV(estimator = rf, param_distributions = random_grid, n_iter =100, cv = 3, verbose=2, random_state=42, n_jobs = -1)
-        # Fit the random search model
-        rf_random.fit(trainX, trainY)
-        score = evaluate(rf_random, testX, testY)
-        
-    print("Random score : ", score)
-    file.write("Random score : {} \n".format(score))
-    file.write(json.dumps(rf_random.best_params_))
-    file.write("\n")
+            y = np.ravel(trainY)
+            selector = SelectKBest(f_regression, k=n)
+            selector.fit(trainX, y)
 
+            # Get idxs of columns to keep
+            cols = selector.get_support(indices=True)
+            # Create new dataframe with only desired column
+            testX = testX[trainX.columns[cols]]
+
+            # Get score for these features
+            model = DecisionTreeRegressor(max_depth = 10)
+            s = -1 * np.mean(cross_val_score(model, testX, testY, n_jobs=-1, cv=kCross, scoring='neg_mean_squared_error'))
+            print("number = ", n, "score = ", s)
+            scores.append(s)
+
+            file.write("N Features = {}, cols = {} \n".format(n, testX.columns.values))
 
     file.close()
+
+    plt.plot(nFeatures, scores, label="Mean Squared Error")
+    plt.title("Cross Validation Score")
+    plt.legend()
+
+    plt.savefig(plotFolder + "crossValScore.pdf")
+
+
+    
