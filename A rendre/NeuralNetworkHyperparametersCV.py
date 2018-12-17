@@ -187,7 +187,7 @@ if __name__ == '__main__':
 
     # Test without parameters tuning
     with measure_time('Simplest Forest'):
-        estim = RandomForestRegressor()
+        estim = MLPRegressor()
         estim.fit(trainX, trainY)
         simpleScore = evaluate(estim, testX, testY)
         file.write("No parameters score : {} \n".format(simpleScore))
