@@ -193,8 +193,8 @@ if __name__ == '__main__':
         file.write("No parameters score : {} \n".format(simpleScore))
         
 
-    n_layers = [int(x) for x in np.linspace(start = 5, stop = 100, num = 20)]
-    n_neurons = [int(x) for x in np.linspace(start = 5, stop = 50, num = 10)]
+    n_layers = [int(x) for x in np.linspace(start = 30, stop = 70, num = 9)]
+    n_neurons = [int(x) for x in np.linspace(start = 5, stop = 25, num = 5)]
 
     hidden_layer = []
     for layer in n_layers:
