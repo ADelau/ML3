@@ -97,18 +97,32 @@ def make_submission(y_predict, user_movie_ids, file_name='submission',
 
 def encode(data):
     """
-    le = LabelEncoder()
-    print(data.index)
-    for i in range(len(data.columns)):
-        print(data.values[:,i])
-        print(type(data.values[0,i]))
-        data.values[:,i] = le.fit_transform(data.values[:,i])
+    Perform One-hot encoding on the data
+
+    Parameters
+    ----------
+    data: the dataFrame to encode
+
+    Return
+    ------
+    data: the encoded dataFrame
     """
     data = pd.get_dummies(data, sparse = True)
     
     return data
 
 def clean(data):
+    """
+    Clean the data with missing values
+
+    Parameters
+    ----------
+    data: the dataFrame to clean
+
+    Return
+    ------
+    data: the cleaned dataFrame
+    """
     nanProportionToDrop = 1/len(data.columns)
     data = data.dropna(axis = 1, thresh = nanProportionToDrop*len(data.index))
     data = data.dropna(axis = 0, how = "any")
@@ -116,6 +130,27 @@ def clean(data):
     return data
 
 def make_dataset(toSplit = False, splitRatio = 0.2):
+    """
+    Make the dataset
+
+    Parameters
+    ----------
+    toSplit: boolean indicating if the dataset has to be splitted between train and test split
+    splitRatio: the ratio of the dataset to be used as testset if the dataset is splitted
+
+    Return
+    ------
+    trainX: the train dataset inputs
+    trainY: the train dataset outputs
+    testX: if toSplit = True, the test dataset inputs
+    testY: if toSplit = True, the test dataset outputs
+    userMeanRating: the mean rating per user based on the train set
+    movieMeanRating: the mean rating per movie based on the train set
+    userStdRating: the mean standard deviation of the user based on the train set
+    movieStdRating: the mean standard deviation of the movie based on the train set
+    userDict: a dictionnary mapping user id to index in the user mean and std ratings
+    movieDict: a dictionnary mapping movie id to index in the movie mean and std ratings
+    """
     userMoviePair = load_from_csv("data/data_train.csv")
     userFeatures = load_from_csv("data/data_user_3.csv")
     movieFeatures = load_from_csv("data/data_movie.csv")
@@ -192,7 +227,6 @@ def make_dataset(toSplit = False, splitRatio = 0.2):
     
     normalizedRating = pd.Series(normalizedRating, name="rating")
     
-#    trainDataset = train2Dataset.drop("rating", axis = 1)
     trainDataset = trainDataset.drop("rating", axis = 1)
     trainDataset = pd.merge(trainDataset, userFeatures, on = "user_id")
     trainDataset = pd.merge(trainDataset, movieFeatures, on = "movie_id")
@@ -219,6 +253,26 @@ def make_dataset(toSplit = False, splitRatio = 0.2):
     return trainX, trainY, testDataset, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict
 
 def make_prediction(trainX, trainY, testX, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict, neighbors):
+    """
+    Predict the values for the inputs in testX
+
+    Parameters
+    ----------
+    trainX: the train dataset inputs
+    trainY: the train dataset outputs
+    testX: the inputs on which to make predictions
+    userMeanRating: the mean rating per user based on the train set
+    movieMeanRating: the mean rating per movie based on the train set
+    userStdRating: the mean standard deviation of the user based on the train set
+    movieStdRating: the mean standard deviation of the movie based on the train set
+    userDict: a dictionnary mapping user id to index in the user mean and std ratings
+    movieDict: a dictionnary mapping movie id to index in the movie mean and std ratings
+    neighbors: the number of neighbours to consider in the estimator
+
+    Return
+    ------
+    denormalizedRating: the predicted ratings
+    """
 
     predictX = testX.drop("user_id", axis = 1)
     predictX = predictX.drop("movie_id", axis = 1)
@@ -273,6 +327,9 @@ def make_prediction(trainX, trainY, testX, userMeanRating, movieMeanRating, user
     return denormalizedRating
 
 def submit():
+    """
+    make a file to submit on kaggle platform
+    """
     print("building dataset...")
     trainX, trainY, testX, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict = make_dataset(False, 0.2)
     
@@ -289,6 +346,17 @@ def submit():
     print('Submission file "{}" successfully written'.format(fname))
 
 def compute_accuracy(neighbors = 200):
+    """
+    Compute the accuracy of the model
+
+    Parameters
+    ----------
+    neighbors: the number of neighbors to use for the estimator
+
+    Return
+    ------
+    error: the mean squared error
+    """
     trainX, trainY, testX, testY, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict = make_dataset(True, 0.2)
     
     predictY = make_prediction(trainX, trainY, testX, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict, neighbors)
@@ -296,6 +364,9 @@ def compute_accuracy(neighbors = 200):
     return error
 
 def best_parameters():
+    """
+    compute the best parameters for the knn estimator
+    """
     NB_TEST = 3
     parameters = (50, 100, 200, 500)
 

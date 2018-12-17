@@ -53,18 +53,18 @@ def load_from_csv(path, delimiter=','):
     return pd.read_csv(path, delimiter=delimiter, encoding = "latin_1")
 
 def encode(data):
-	data = data.astype("category")
-	"""
-	le = LabelEncoder()
-	print(data.index)
-	for i in range(len(data.columns)):
-		print(data.values[:,i])
-		print(type(data.values[0,i]))
-		data.values[:,i] = le.fit_transform(data.values[:,i])
-	"""
-	data = pd.get_dummies(data, sparse = True)
+    data = data.astype("category")
+    """
+    le = LabelEncoder()
+    print(data.index)
+    for i in range(len(data.columns)):
+        print(data.values[:,i])
+        print(type(data.values[0,i]))
+        data.values[:,i] = le.fit_transform(data.values[:,i])
+    """
+    data = pd.get_dummies(data, sparse = True)
 
-	return data
+    return data
 
 def clean(data):
     """
@@ -101,7 +101,7 @@ def make_dataset(userMoviePairPath, includeY):
 
     userMoviePair = load_from_csv(userMoviePairPath)
     userFeatures = clean(load_from_csv("data/data_user.csv"))
-    movieFeatures = clean(load_from_csv("data/data_movie.csv"))	
+    movieFeatures = clean(load_from_csv("data/data_movie.csv")) 
 
     dataset = userMoviePair
 
@@ -192,8 +192,10 @@ if __name__ == '__main__':
         simpleScore = evaluate(estim, testX, testY)
         file.write("No parameters score : {} \n".format(simpleScore))
         
-
+    # Number of layers in the network
     n_layers = [int(x) for x in np.linspace(start = 30, stop = 70, num = 9)]
+
+    # Number of neurons per layers in the network
     n_neurons = [int(x) for x in np.linspace(start = 5, stop = 25, num = 5)]
 
     hidden_layer = []
