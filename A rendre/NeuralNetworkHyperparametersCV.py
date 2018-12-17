@@ -1,22 +1,18 @@
 # ! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import datetime
+import json
 import os
 import time
-import datetime
 from contextlib import contextmanager
 
-
-import pandas as pd
 import numpy as np
-from scipy import sparse
-from sklearn.model_selection import cross_val_score, train_test_split, GridSearchCV
-from matplotlib import pyplot as plt
-from sklearn.feature_selection import SelectKBest
-from sklearn.feature_selection import f_regression, mutual_info_regression
-import utils
+import pandas as pd
 from sklearn.neural_network import MLPRegressor
-import json
+from sklearn.model_selection import GridSearchCV, train_test_split
+
+import utils
 
 @contextmanager
 def measure_time(label):
