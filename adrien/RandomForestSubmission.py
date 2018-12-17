@@ -1,25 +1,17 @@
 # ! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import datetime
 import os
 import time
-import datetime
 from contextlib import contextmanager
 
-
-import pandas as pd
 import numpy as np
-from scipy import sparse
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import cross_val_score, train_test_split
-from sklearn.neighbors import KNeighborsRegressor
-from matplotlib import pyplot as plt
-from sklearn.feature_selection import SelectKBest
-from sklearn.feature_selection import f_regression, mutual_info_regression
-import utils
-from sklearn.linear_model import LogisticRegression
+import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
+
+import utils
+
 
 @contextmanager
 def measure_time(label):
@@ -260,7 +252,3 @@ if __name__ == '__main__':
 
     fname = make_submission(y_pred, xSubmit, 'SimpleForestFillMean')
     print('Submission file "{}" successfully written'.format(fname))
-
-
-
-    

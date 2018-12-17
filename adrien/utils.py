@@ -1,9 +1,4 @@
 from numpy import nan
-from numpy import mean
-import pandas as pd
-import time
-import datetime
-import numpy as np 
 from textblob import TextBlob
 from textblob.en.sentiments import PatternAnalyzer
 
