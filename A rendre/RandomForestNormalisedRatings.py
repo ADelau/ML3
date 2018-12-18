@@ -8,7 +8,7 @@ from contextlib import contextmanager
 import pandas as pd
 import numpy as np
 import utils
-from sklearn.neural_network import MLPRegressor
+from sklearn.ensemble import RandomForestRegressor
 import math
 from sklearn.utils import shuffle
 from sklearn.metrics import mean_squared_error
@@ -97,37 +97,81 @@ def make_submission(y_predict, user_movie_ids, file_name='submission',
 
 def encode(data):
     """
-	le = LabelEncoder()
-	print(data.index)
-	for i in range(len(data.columns)):
-		print(data.values[:,i])
-		print(type(data.values[0,i]))
-		data.values[:,i] = le.fit_transform(data.values[:,i])
-	"""
+    Perform One-hot encoding on the data
+
+    Parameters
+    ----------
+    data: the dataFrame to encode
+
+    Return
+    ------
+    data: the encoded dataFrame
+    """
     data = pd.get_dummies(data, sparse = True)
     
     return data
 
 def clean(data):
-	nanProportionToDrop = 1/len(data.columns)
-	data = data.dropna(axis = 1, thresh = nanProportionToDrop*len(data.index))
-	data = data.dropna(axis = 0, how = "any")
+    """
+    Clean the data with missing values
 
-	return data
+    Parameters
+    ----------
+    data: the dataFrame to clean
+
+    Return
+    ------
+    data: the cleaned dataFrame
+    """
+    nanProportionToDrop = 1/len(data.columns)
+    data = data.dropna(axis = 1, thresh = nanProportionToDrop*len(data.index))
+    data = data.dropna(axis = 0, how = "any")
+
+    return data
 
 def make_dataset(toSplit = False, splitRatio = 0.2):
+    """
+    Make the dataset
+
+    Parameters
+    ----------
+    toSplit: boolean indicating if the train dataset has to be splitted between train and test split(if True)
+            or if it should output the full train set as train set and the test set as test set(is False)
+    splitRatio: the ratio of the dataset to be used as test set if the dataset is splitted
+
+    Return
+    ------
+    trainX: the train dataset inputs
+    trainY: the train dataset outputs
+    testX: if toSplit = True, the test dataset inputs
+    testY: if toSplit = True, the test dataset outputs
+    testDataset : if toSplit = False, the test dataset inputs
+    userMeanRating: the mean rating per user based on the train set
+    movieMeanRating: the mean rating per movie based on the train set
+    userStdRating: the mean standard deviation of the user based on the train set
+    movieStdRating: the mean standard deviation of the movie based on the train set
+    userDict: a dictionnary mapping user id to index in the user mean and std ratings
+    movieDict: a dictionnary mapping movie id to index in the movie mean and std ratings
+    """
+    
+    # Load datasets
     userMoviePair = load_from_csv("data/data_train.csv")
     userFeatures = load_from_csv("data/data_user_3.csv")
     movieFeatures = load_from_csv("data/data_movie.csv")
 
+    # Drop unused features
     movieFeatures = movieFeatures.drop("IMDb_URL", axis = 1)
     movieFeatures = movieFeatures.drop("video_release_date", axis = 1)
     userFeatures = userFeatures.drop("zip_code", axis = 1)
     
+    # Convert date into an integer to induce an order between the movies in our model
     movieFeatures["release_date"] = [utils.dateConverter(date) for date in movieFeatures["release_date"]]
+    
+    # Set the type of gender and occupation features as category so that they can be encoded 
     userFeatures["gender"] = userFeatures["gender"].astype("category")
     userFeatures["occupation"] = userFeatures["occupation"].astype("category")
 
+    # Compute the polarity and subjectivity of the movie names
     polarity, subjectivity = utils.stringAnalyzer(movieFeatures["movie_title"])
     movieFeatures = pd.concat(objs = [movieFeatures, pd.Series(data = polarity, name = "polarity")], axis = 1, sort = False)
     movieFeatures = pd.concat(objs = [movieFeatures, pd.Series(data = subjectivity, name = "subjectivy")], axis = 1, sort = False)
@@ -135,20 +179,25 @@ def make_dataset(toSplit = False, splitRatio = 0.2):
     
     trainDataset = userMoviePair
 
+    # Load train outputs 
     y = load_from_csv("data/output_train.csv")
     trainDataset = pd.concat([trainDataset, y], axis = 1, sort = False)
     
+    # Clean dataset
     trainDataset = clean(trainDataset)
 	
+    #Split in train and test set
     if toSplit:
         trainLength = math.floor((1 - splitRatio) * len(trainDataset))
         trainDataset = shuffle(trainDataset)
         testDataset = trainDataset[trainLength:]
-        train2Dataset = trainDataset[:trainLength]
+        trainDataset = trainDataset[:trainLength]
     
+    #Load test set
     else:
         testDataset = load_from_csv("data/data_test.csv")
 
+    # Compute aggregated values on the ratings for users and movies 
     userMeanRating = trainDataset.groupby("user_id", as_index = False).rating.agg("mean")
     userMeanRating.rename(index = str, columns = {"rating": "userMeanRating"}, inplace = True)
     movieMeanRating = trainDataset.groupby("movie_id", as_index = False).rating.agg("mean")
@@ -161,9 +210,9 @@ def make_dataset(toSplit = False, splitRatio = 0.2):
     movieStdRating.rename(index = str, columns = {"rating": "movieStdRating"}, inplace = True)
     movieStdRating["movieStdRating"] = movieStdRating["movieStdRating"].apply(lambda x : np.sqrt(x))
     
+    # Establish the mapping between user and movie id and their index in the aggregated datasets
     userDict = {}
     movieDict = {}
-    normalizedRating = []
     for index, sample in userMeanRating.iterrows():
         userId = sample["user_id"]
         userDict[userId]=int(index)
@@ -171,7 +220,9 @@ def make_dataset(toSplit = False, splitRatio = 0.2):
     for index, sample in movieMeanRating.iterrows():
         movieId = sample["movie_id"]
         movieDict[movieId]=int(index)
-        
+    
+    # Normalize the ratings
+    normalizedRating = []
     for index, sample in trainDataset.iterrows():
         userId = sample["user_id"]
         movieId = sample["movie_id"]
@@ -185,32 +236,43 @@ def make_dataset(toSplit = False, splitRatio = 0.2):
         mean = ((userMean + movieMean)/2)
         std = ((userStd + movieStd)/2)
         
+        # No std if not enough samples 
         if std == 0 or np.isnan(std):
             normalizedRating.append(rating-mean)
         else:
             normalizedRating.append((rating-mean)/std)
     
     normalizedRating = pd.Series(normalizedRating, name="rating")
-    
-#    trainDataset = train2Dataset.drop("rating", axis = 1)
+        
+    # Drop old ratings
     trainDataset = trainDataset.drop("rating", axis = 1)
+    
+    # Merge the features
     trainDataset = pd.merge(trainDataset, userFeatures, on = "user_id")
     trainDataset = pd.merge(trainDataset, movieFeatures, on = "movie_id")
-
+    
+    # Add the normalized ratings 
     trainDataset = pd.concat([trainDataset, normalizedRating], axis = 1, sort = False)
 
+    # Merge the features 
     testDataset = pd.merge(testDataset, userFeatures, on = "user_id")
     testDataset = pd.merge(testDataset, movieFeatures, on = "movie_id")
     
+    # Drop the ids that are no longer used 
     trainDataset = trainDataset.drop("user_id", axis = 1)
     trainDataset = trainDataset.drop("movie_id", axis = 1)
 
+    # Clean the train dataset
     trainDataset = clean(trainDataset)
+    
+    # Fill the missing values in the test dataset 
     testDataset.fillna(method = "ffill", inplace = True)
 
+    # Split the train dataset into inputs and outputs 
     trainY = trainDataset["rating"].to_frame()
     trainX = trainDataset.drop("rating", axis = 1)
 	
+    # Split the test dataset into inputs and outputs if toSplit = True  
     if toSplit:
         testY = testDataset["rating"].to_frame()
         testX = testDataset.drop("rating", axis = 1)
@@ -218,11 +280,32 @@ def make_dataset(toSplit = False, splitRatio = 0.2):
   
     return trainX, trainY, testDataset, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict
 
-def make_prediction(trainX, trainY, testX, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict,  nbLayers = 50, nbNeurons = 5):
+def make_prediction(trainX, trainY, testX, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict):
+    """
+    Predict the values for the inputs in testX
 
+    Parameters
+    ----------
+    trainX: the train dataset inputs
+    trainY: the train dataset outputs
+    testX: the inputs on which to make predictions
+    userMeanRating: the mean rating per user based on the train set
+    movieMeanRating: the mean rating per movie based on the train set
+    userStdRating: the mean standard deviation of the user based on the train set
+    movieStdRating: the mean standard deviation of the movie based on the train set
+    userDict: a dictionnary mapping user id to index in the user mean and std ratings
+    movieDict: a dictionnary mapping movie id to index in the movie mean and std ratings
+
+    Return
+    ------
+    denormalizedRating: the predicted ratings
+    """
+    
+    # Drop the ids that are not used 
     predictX = testX.drop("user_id", axis = 1)
     predictX = predictX.drop("movie_id", axis = 1)
     
+    # Perform One-hot encoding to encode the categorical features 
     print("encoding ...")
     trainLength = len(trainX)
 	
@@ -232,24 +315,33 @@ def make_prediction(trainX, trainY, testX, userMeanRating, movieMeanRating, user
     trainX = encoded[:trainLength]
     predictX = encoded[trainLength:]
     
+    # Fit the classifier
     print("fitting ...")
-    hiddenLayers = (nbNeurons,) * nbLayers
-    classifier = MLPRegressor(hidden_layer_sizes = hiddenLayers, tol = 0.0001, max_iter = 1000) 
+    classifier = RandomForestRegressor(max_depth = 30, n_estimators = 400, max_features = 'auto', bootstrap = True, min_samples_split = 10) 
     classifier.fit(trainX, trainY)
     
+    # Predict normalized ratings 
     print("predicting ...")
     predictY = classifier.predict(predictX)
     predictY = pd.Series(predictY, name="rating")
     predictionDataset = pd.concat([testX, predictY], axis = 1, sort = False)
+    
+    # Denormalize the ratings
     denormalizedRating = []
     for index, sample in predictionDataset.iterrows():
         userId = sample['user_id']
         movieId = sample['movie_id']
         rating = sample['rating']
-        userIndex = userDict[userId]
-        userMean = userMeanRating["userMeanRating"][userIndex]
-        userStd = userStdRating["userStdRating"][userIndex]
         
+        # Get user mean and std 
+        if userId in userDict:
+            userIndex = userDict[userId]
+            userMean = userMeanRating["userMeanRating"][userIndex]
+            userStd = userStdRating["userStdRating"][userIndex]
+        else:
+            userMean = np.nan
+
+        # Get movie mean and std 
         if movieId in movieDict:
             movieIndex = movieDict[movieId]
             movieMean = movieMeanRating["movieMeanRating"][movieIndex]
@@ -257,12 +349,21 @@ def make_prediction(trainX, trainY, testX, userMeanRating, movieMeanRating, user
         else: 
             movieMean = np.nan
         
-        if np.isnan(movieMean): 
+        # Compute global mean and std 
+        if np.isnan(userMean):
+            mean = movieMean
+        elif np.isnan(movieMean):
             mean = userMean
-        else: 
+        elif np.isnan(userMean) and np.isnan(movieMean):
+            userMean = userMeanRating["userMeanRating"].mean()
+            movieMean = movieMeanRating["movieMeanRating"].mean()
             mean = ((userMean + movieMean)/2)
+        else:
+            mean = ((userMean + movieMean)/2)
+        
         std = ((userStd + movieStd)/2)
         
+        # Denormalize the ratings 
         if std == 0 or np.isnan(std):
             denormalizedRating.append(rating + mean) 
         else:
@@ -270,26 +371,47 @@ def make_prediction(trainX, trainY, testX, userMeanRating, movieMeanRating, user
 
     return denormalizedRating
 
-def compute_accuracy():
+def submit():
+    """
+    make a file to submit on kaggle platform
+    """
     print("building dataset...")
     trainX, trainY, testX, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict = make_dataset(False, 0.2)
     
-	
-    predictY = make_prediction(trainX, trainY, testX, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict, nbLayers = 50, nbNeurons = 5)
-#    print("mean_squared_error {}".format(mean_squared_error(testY, predictY)))
-   
-    # Making the submission file
+    predictY = make_prediction(trainX, trainY, testX, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict)
+
+    # Make the submission file 
     user_movie_pair = []
     for index, item in testX.iterrows():
         user = item['user_id']
         movie = item['movie_id']
         user_movie_pair.append([int(user), int(movie)])
         
-    fname = make_submission(predictY, user_movie_pair , 'NeuralNetworkNormalizedRating')
+    fname = make_submission(predictY, user_movie_pair , 'RandomForestNormalizedRating')
     print('Submission file "{}" successfully written'.format(fname))
 
+def compute_accuracy():
+    """
+    Compute the accuracy of the model
+
+    Parameters
+    ----------
+    neighbors: the number of neighbors to use for the estimator
+
+    Return
+    ------
+    error: the mean squared error
+    """
+    
+    trainX, trainY, testX, testY, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict = make_dataset(True, 0.2)
+    
+    predictY = make_prediction(trainX, trainY, testX, userMeanRating, movieMeanRating, userStdRating, movieStdRating, userDict, movieDict)
+    error = mean_squared_error(testY, predictY) 
+    return error
+   
 if __name__ == '__main__':
     compute_accuracy()
+    
 
    
 
