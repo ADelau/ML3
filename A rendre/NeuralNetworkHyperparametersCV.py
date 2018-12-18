@@ -165,7 +165,7 @@ def evaluate(model, x, y):
 
 if __name__ == '__main__':
     """
-    Script used to find best hyperparameters of RandomForest with GridSearch
+    Script used to find best hyperparameters of NeuralNetwork with GridSearch
     """
 
     prefix = 'data/'
