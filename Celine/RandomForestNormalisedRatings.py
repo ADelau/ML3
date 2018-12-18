@@ -232,8 +232,6 @@ def make_prediction(trainX, trainY, testX, userMeanRating, movieMeanRating, user
     trainX = encoded[:trainLength]
     predictX = encoded[trainLength:]
     
-    trainY = trainY
-    
     print("fitting ...")
     classifier = RandomForestRegressor(max_depth = None, n_estimators = 2000, max_features = 'auto', bootstrap = True, min_samples_split = 50) 
     classifier.fit(trainX, trainY)
@@ -256,9 +254,9 @@ def make_prediction(trainX, trainY, testX, userMeanRating, movieMeanRating, user
             movieMean = movieMeanRating["movieMeanRating"][movieIndex]
             movieStd = movieStdRating["movieStdRating"][movieIndex]
         else: 
-            movieMean = 0 
+            movieMean = np.nan
         
-        if movieMean == 0 or np.isnan(movieMean): 
+        if np.isnan(movieMean): 
             mean = userMean
         else: 
             mean = ((userMean + movieMean)/2)
