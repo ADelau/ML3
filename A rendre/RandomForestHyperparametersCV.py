@@ -194,8 +194,8 @@ if __name__ == '__main__':
         file.write("No parameters score : {} \n".format(simpleScore))
         
 
-    # Number of trees in random forest
-    n_estimators = [200, 400, 600]
+   # Number of trees in random forest, not to optimize as increasing it can only increase accuracy 
+    n_estimators = [100]
     # Number of features to consider at every split
     max_features = ['auto']
     # Maximum number of levels in tree
