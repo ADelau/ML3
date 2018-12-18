@@ -167,7 +167,7 @@ def evaluate(model, x, y):
 
 if __name__ == '__main__':
     """
-    Script used to find best hyperparameters of RandomForest with RandomSearch
+    Script used to find best hyperparameters of NeuralNetwork with RandomSearch
     """
 
     prefix = 'data/'
